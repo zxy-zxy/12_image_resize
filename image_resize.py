@@ -69,35 +69,36 @@ def load_image(path_to_image):
         return None
 
 
-def parse_target_img_size(args):
-    target_img_size = None
-    if args.command == COMMANDS.get('scale'):
-        target_img_size = tuple(
-            value * args.scale
-            for value in original_img.size
+def get_target_size_by_scale(original_img_size, scale):
+    target_img_size = tuple(
+        value * scale
+        for value in original_img_size
+    )
+    return target_img_size
+
+
+def get_target_size_by_dimensions(original_img_size, width, height):
+    if width is not None and height is not None:
+        target_img_size = (
+            width,
+            height,
         )
-    elif args.command == COMMANDS.get('resize'):
-        if args.width is not None and args.height is not None:
-            target_img_size = (
-                args.width,
-                args.height,
+    elif height is None:
+        target_img_size = (
+            width,
+            calculate_target_height(
+                original_img_size=original_img_size,
+                target_width=width
             )
-        elif args.height is None:
-            target_img_size = (
-                args.width,
-                calculate_target_height(
-                    original_img_size=original_img.size,
-                    target_width=args.width
-                )
-            )
-        else:
-            target_img_size = (
-                calculate_target_width(
-                    original_img_size=original_img.size,
-                    target_height=args.height
-                ),
-                args.height,
-            )
+        )
+    else:
+        target_img_size = (
+            calculate_target_width(
+                original_img_size,
+                height,
+            ),
+            height
+        )
     return target_img_size
 
 
@@ -106,17 +107,17 @@ def calculate_target_height(original_img_size, target_width):
     return int(original_img_size[1] / division_of_width)
 
 
+def calculate_target_width(original_img_size, target_height):
+    division_of_height = (original_img_size[1] / float(target_height))
+    return int(original_img_size[0] / division_of_height)
+
+
 def verify_aspect_ratio(original_img_size, target_img_size):
     original = fractions.Fraction(original_img_size[0], original_img_size[1])
     target = fractions.Fraction(target_img_size[0], target_img_size[1])
     if original == target:
         return True
     return False
-
-
-def calculate_target_width(original_img_size, target_height):
-    division_of_height = (original_img_size[1] / float(target_height))
-    return int(original_img_size[0] / division_of_height)
 
 
 def resize_image(original_img, target_img_size):
@@ -143,9 +144,11 @@ if __name__ == '__main__':
     if original_img is None:
         sys.exit('Cannot open image: {}'.format(format(args.input)))
 
-    target_img_size = parse_target_img_size(args)
-
-    if target_img_size is None:
+    if args.command == COMMANDS.get('scale'):
+        target_img_size = get_target_size_by_scale(original_img.size, args.scale)
+    elif args.command == COMMANDS.get('resize'):
+        target_img_size = get_target_size_by_dimensions(original_img.size, args.width, args.height)
+    else:
         sys.exit('Cannot parse operation type.')
 
     if not verify_aspect_ratio(original_img.size, target_img_size):
