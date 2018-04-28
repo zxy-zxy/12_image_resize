@@ -71,8 +71,8 @@ def load_image(path_to_image):
 
 def get_target_size_by_scale(original_img_size, scale):
     target_img_size = tuple(
-        value * scale
-        for value in original_img_size
+        dimension_value * scale
+        for dimension_value in original_img_size
     )
     return target_img_size
 
