@@ -1,40 +1,41 @@
 import os
 import sys
+import fractions
 import argparse
 from PIL import Image
 
 COMMANDS = {
-    'scaling': 'scaling',
-    'resizing': 'resizing'
+    'scale': 'scale',
+    'resize': 'resize'
 }
 
 
 def append_subparser_for_scaling(subparsers):
     parser_scale = subparsers.add_parser(
-        COMMANDS.get('scaling'),
+        COMMANDS.get('scale'),
         help='Command to scale image by a single parameter.'
     )
     parser_scale.add_argument(
-        '--scale',
+        'scale',
         type=int,
-        help='scale'
+        help='Scale coefficient.'
     )
 
 
 def append_subparser_for_resizing(subparsers):
     parser_resize = subparsers.add_parser(
-        COMMANDS.get('resizing'),
+        COMMANDS.get('resize'),
         help='Command to resize image by desired height & width.'
     )
     parser_resize.add_argument(
         '--width',
         type=int,
-        help='Width of target image'
+        help='Width of target image.'
     )
     parser_resize.add_argument(
         '--height',
         type=int,
-        help='Height of target image'
+        help='Height of target image.'
     )
 
 
@@ -69,12 +70,13 @@ def load_image(path_to_image):
 
 
 def parse_target_img_size(args):
-    if args.command == COMMANDS.get('scaling'):
+    target_img_size = None
+    if args.command == COMMANDS.get('scale'):
         target_img_size = tuple(
             value * args.scale
             for value in original_img.size
         )
-    else:
+    elif args.command == COMMANDS.get('resize'):
         if args.width is not None and args.height is not None:
             target_img_size = (
                 args.width,
@@ -104,6 +106,14 @@ def calculate_target_height(original_img_size, target_width):
     return int(original_img_size[1] / division_of_width)
 
 
+def verify_aspect_ratio(original_img_size, target_img_size):
+    original = fractions.Fraction(original_img_size[0], original_img_size[1])
+    target = fractions.Fraction(target_img_size[0], target_img_size[1])
+    if original == target:
+        return True
+    return False
+
+
 def calculate_target_width(original_img_size, target_height):
     division_of_height = (original_img_size[1] / float(target_height))
     return int(original_img_size[0] / division_of_height)
@@ -116,7 +126,7 @@ def resize_image(original_img, target_img_size):
 
 def get_target_img_name(original_img_name, target_img_size):
     filepath, extension = os.path.splitext(original_img_name)
-    return "{}__{}x{}{}".format(
+    return '{}__{}x{}{}'.format(
         filepath,
         target_img_size[0],
         target_img_size[1],
@@ -135,6 +145,12 @@ if __name__ == '__main__':
 
     target_img_size = parse_target_img_size(args)
 
+    if target_img_size is None:
+        sys.exit('Cannot parse operation type.')
+
+    if not verify_aspect_ratio(original_img.size, target_img_size):
+        print('Aspect ratio is collapsed.')
+
     target_img = resize_image(original_img, target_img_size)
 
     if args.output is None:
@@ -143,4 +159,4 @@ if __name__ == '__main__':
         target_img_name = args.output
 
     target_img.save(target_img_name)
-    print("Path to proceeded image: {}".format(target_img_name))
+    print('Image has been saved at: {}'.format(target_img_name))

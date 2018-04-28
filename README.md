@@ -23,16 +23,16 @@ Also you can specify only one indicator and the second one will be calculated by
 
 ### Example input
 ```bash
-python image_resize.py scaling -scale 2 original_image.jpg
+python image_resize.py scale 2 original_image.jpg
 ```
 ```bash
-python image_resize.py resizing -width 600  original_image.jpg
+python image_resize.py resize --width 600  original_image.jpg
 ```
 
 ### Output
-Desired output also can be provded as an argument:
+Desired output also can be provided as an argument:
 ```bash
-python image_resize.py scaling --scale 2 image.jpg --output=/home/username/scaled.jpg
+python image_resize.py scale 2 image.jpg --output=/home/username/scaled.jpg
 ```
 
 # Project Goals
