@@ -82,7 +82,7 @@ def get_target_img_size(args, original_img_size):
             get_target_size_by_dims
         )
     else:
-        sys.exit('Cannot parse operation type.')
+        return None
 
     return image_size_processor_context.calculate_target_img_size()
 
@@ -171,6 +171,9 @@ if __name__ == '__main__':
         sys.exit('Cannot open image: {}'.format(format(args.input)))
 
     target_img_size = get_target_img_size(args, original_img.size)
+
+    if target_img_size is None:
+        sys.exit('Cannot parse operation type.')
 
     if not verify_aspect_ratio(original_img.size, target_img_size):
         print('Aspect ratio is collapsed.')
