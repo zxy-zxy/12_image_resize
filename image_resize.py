@@ -4,27 +4,22 @@ import fractions
 import argparse
 from PIL import Image
 
-COMMANDS = {
-    'scale': 'scale',
-    'resize': 'resize'
-}
-
 
 def append_subparser_for_scaling(subparsers):
     parser_scale = subparsers.add_parser(
-        COMMANDS.get('scale'),
+        'scale',
         help='Command to scale image by a single parameter.'
     )
     parser_scale.add_argument(
         'scale',
-        type=int,
+        type=float,
         help='Scale coefficient.'
     )
 
 
 def append_subparser_for_resizing(subparsers):
     parser_resize = subparsers.add_parser(
-        COMMANDS.get('resize'),
+        'resize',
         help='Command to resize image by desired height & width.'
     )
     parser_resize.add_argument(
@@ -70,67 +65,89 @@ def load_image(path_to_image):
 
 
 def get_target_img_size(args, original_img_size):
-    if args.command == COMMANDS.get('scale'):
-        return get_target_img_size_by_scale(original_img.size, args.scale)
-    elif args.command == COMMANDS.get('resize'):
-        return get_target_img_size_by_dimensions(original_img.size, args.width, args.height)
-    else:
-        return None
-
-
-def get_target_img_size_by_scale(original_img_size, scale):
-    target_img_size = tuple(
-        dimension_value * scale
-        for dimension_value in original_img_size
-    )
-    return target_img_size
-
-
-def get_target_img_size_by_dimensions(original_img_size, width, height):
-    if width is not None and height is not None:
-        target_img_size = (
-            width,
-            height,
+    if args.command == 'scale':
+        image_size_processor_context = ImageSizeProcessorContext(
+            original_img_size,
+            args.scale,
+            None,
+            None,
+            get_target_size_by_scale
         )
-    elif height is None:
-        target_img_size = (
-            width,
-            calculate_target_height(
-                original_img_size=original_img_size,
-                target_width=width
+    elif args.command == 'resize':
+        image_size_processor_context = ImageSizeProcessorContext(
+            original_img_size,
+            None,
+            args.height,
+            args.width,
+            get_target_size_by_dims
+        )
+    else:
+        sys.exit('Cannot parse operation type.')
+
+    return image_size_processor_context.calculate_target_img_size()
+
+
+class ImageSizeProcessorContext:
+    def __init__(self, original_img_size, scale=None, height=None, width=None, func=None):
+        self.original_img_size = original_img_size
+        self.target_img_size = None
+        self.scale = scale
+        self.height = height
+        self.width = width
+        self.func = func
+
+    def calculate_target_img_size(self):
+        return self.func(self)
+
+
+def get_target_size_by_scale(self):
+    self.target_img_size = tuple(
+        int(dimension_value * self.scale)
+        for dimension_value in self.original_img_size
+    )
+    return self.target_img_size
+
+
+def get_target_size_by_dims(self):
+    if self.width is not None and self.height is not None:
+        self.target_img_size = (
+            self.width,
+            self.height,
+        )
+    elif self.height is None:
+        self.target_img_size = (
+            self.width,
+            calculate_dimension(
+                self.original_img_size[0],
+                self.original_img_size[1],
+                self.width
             )
         )
     else:
-        target_img_size = (
-            calculate_target_width(
-                original_img_size,
-                height,
+        self.target_img_size = (
+            calculate_dimension(
+                self.original_img_size[1],
+                self.original_img_size[0],
+                self.height
             ),
-            height
+            self.height
         )
-    return target_img_size
+    return self.target_img_size
 
 
-def calculate_target_height(original_img_size, target_width):
-    division_of_width = (original_img_size[0] / float(target_width))
-    return int(original_img_size[1] / division_of_width)
-
-
-def calculate_target_width(original_img_size, target_height):
-    division_of_height = (original_img_size[1] / float(target_height))
-    return int(original_img_size[0] / division_of_height)
+def calculate_dimension(orig_img_first_dim, orig_img_second_dim, target_img_first_dim):
+    division = orig_img_first_dim / target_img_first_dim
+    return int(orig_img_second_dim / division)
 
 
 def verify_aspect_ratio(original_img_size, target_img_size):
     original = fractions.Fraction(original_img_size[0], original_img_size[1])
     target = fractions.Fraction(target_img_size[0], target_img_size[1])
-    if original == target:
-        return True
-    return False
+    return original == target
 
 
 def resize_image(original_img, target_img_size):
-    img = original_img.resize(target_img_size, Image.ANTIALIAS)
+    img = original_img.resize(target_img_size)
     return img
 
 
@@ -154,9 +171,6 @@ if __name__ == '__main__':
         sys.exit('Cannot open image: {}'.format(format(args.input)))
 
     target_img_size = get_target_img_size(args, original_img.size)
-
-    if target_img_size is None:
-        sys.exit('Cannot parse operation type.')
 
     if not verify_aspect_ratio(original_img.size, target_img_size):
         print('Aspect ratio is collapsed.')
