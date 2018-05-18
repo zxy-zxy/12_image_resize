@@ -66,78 +66,53 @@ def load_image(path_to_image):
 
 def get_target_img_size(args, original_img_size):
     if args.command == 'scale':
-        image_size_processor_context = ImageSizeProcessorContext(
-            original_img_size,
-            args.scale,
-            None,
-            None,
-            get_target_size_by_scale
-        )
+        return get_target_img_size_by_scale(original_img_size, args.scale)
     elif args.command == 'resize':
-        image_size_processor_context = ImageSizeProcessorContext(
-            original_img_size,
-            None,
-            args.height,
-            args.width,
-            get_target_size_by_dims
-        )
+        return get_target_img_size_by_dimensions(original_img_size, args.width, args.height)
     else:
         return None
 
-    return image_size_processor_context.calculate_target_img_size()
 
-
-class ImageSizeProcessorContext:
-    def __init__(self, original_img_size, scale=None, height=None, width=None, func=None):
-        self.original_img_size = original_img_size
-        self.target_img_size = None
-        self.scale = scale
-        self.height = height
-        self.width = width
-        self.func = func
-
-    def calculate_target_img_size(self):
-        return self.func(self)
-
-
-def get_target_size_by_scale(self):
-    self.target_img_size = tuple(
-        int(dimension_value * self.scale)
-        for dimension_value in self.original_img_size
+def get_target_img_size_by_scale(original_img_size, scale):
+    return tuple(
+        int(dimension_value * scale)
+        for dimension_value in original_img_size
     )
-    return self.target_img_size
 
 
-def get_target_size_by_dims(self):
-    if self.width is not None and self.height is not None:
-        self.target_img_size = (
-            self.width,
-            self.height,
+def get_target_img_size_by_dimensions(original_img_size, width, height):
+    if width is not None and height is not None:
+        result_img_size = (
+            width,
+            height,
         )
-    elif self.height is None:
-        self.target_img_size = (
-            self.width,
-            calculate_dimension(
-                self.original_img_size[0],
-                self.original_img_size[1],
-                self.width
+    elif height is None:
+        result_img_size = (
+            width,
+            calculate_target_height(
+                original_img_size=original_img_size,
+                target_width=width
             )
         )
     else:
-        self.target_img_size = (
-            calculate_dimension(
-                self.original_img_size[1],
-                self.original_img_size[0],
-                self.height
+        result_img_size = (
+            calculate_target_width(
+                original_img_size,
+                height,
             ),
-            self.height
+            height
         )
-    return self.target_img_size
+    return result_img_size
 
 
-def calculate_dimension(orig_img_first_dim, orig_img_second_dim, target_img_first_dim):
-    division = orig_img_first_dim / target_img_first_dim
-    return int(orig_img_second_dim / division)
+def calculate_target_height(original_img_size, target_width):
+    division_of_width = (original_img_size[0] / target_width)
+    return int(original_img_size[1] / division_of_width)
+
+
+def calculate_target_width(original_img_size, target_height):
+    division_of_height = (original_img_size[1] / target_height)
+    return int(original_img_size[0] / division_of_height)
 
 
 def verify_aspect_ratio(original_img_size, target_img_size):
@@ -147,7 +122,7 @@ def verify_aspect_ratio(original_img_size, target_img_size):
 
 
 def resize_image(original_img, target_img_size):
-    img = original_img.resize(target_img_size)
+    img = original_img.resize(target_img_size, Image.ANTIALIAS)
     return img
 
 
@@ -163,8 +138,8 @@ def get_target_img_name(original_img_name, target_img_size):
 
 if __name__ == '__main__':
 
-    parser = create_parser()
-    args = parser.parse_args()
+    arguments_parser = create_parser()
+    args = arguments_parser.parse_args()
 
     original_img = load_image(args.input)
     if original_img is None:
