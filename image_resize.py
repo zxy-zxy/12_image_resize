@@ -143,7 +143,7 @@ if __name__ == '__main__':
 
     original_img = load_image(args.input)
     if original_img is None:
-        sys.exit('Cannot open image: {}'.format(format(args.input)))
+        sys.exit('Cannot open image: {}'.format(args.input))
 
     target_img_size = get_target_img_size(args, original_img.size)
 
